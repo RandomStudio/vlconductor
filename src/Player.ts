@@ -40,28 +40,11 @@ class Player extends EventEmitter {
   }
 
   async open() {
-    const cmd = getCommand(this.filePath, config.http, this.options);
-    logger.info(`run command: "${cmd}"`);
-    const { http } = config;
-    this.process = execFile(
-      "/usr/bin/vlc",
-      [
-        this.filePath,
-        "-I http",
-        "--http-password",
-        http.password,
-        "--http-host",
-        http.host,
-        "--http-port",
-        http.port.toString(),
-      ],
-      (error, stdout, stderr) => {
-        console.log({ error, stdout, stderr });
-      }
-    );
-    // this.process = execFile(cmd, (err, stdout) => {
-    //   console.debug("process done with", { err, stdout });
-    // });
+    const params = getParams(this.filePath, config.http, this.options);
+    logger.info(`run command: "${params}"`);
+    this.process = execFile("/usr/bin/vlc", params, (error, stdout, stderr) => {
+      logger.trace("exec complete", { error, stdout, stderr });
+    });
     this.checkInterval = setInterval(() => {
       this.fetchStatus();
     }, config.checkInterval);
@@ -92,7 +75,13 @@ class Player extends EventEmitter {
         this.emit("stopped");
       }
     } catch (e) {
-      logger.error("fetchStatus error:", e);
+      if (e.code === "ECONNRESET") {
+        logger.debug("reset - probably closing video?");
+      } else if (e.code === "ECONNREFUSED") {
+        logger.debug("refused - probably video not started yet?");
+      } else {
+        logger.error("fetchStatus error:", e);
+      }
     }
   }
 
@@ -124,13 +113,21 @@ class Player extends EventEmitter {
 const getStatusUrl = (http: Config["http"]) =>
   `http://localhost:${http.port}/requests/status.xml`;
 
-const getCommand = (
+const getParams = (
   fullPath: string,
   http: Config["http"],
   options: PlaybackOptions
-) =>
-  `vlc --no-osd -I http --http-password ${http.password} --http-host ${
-    http.host
-  } --http-port ${http.port} ${fullPath} ${options.loop ? "--loop" : ""}`;
+): string[] => [
+  "--no-osd",
+  "-I http",
+  "--http-password",
+  http.password,
+  "--http-host",
+  http.host,
+  "--http-port",
+  http.port.toString(),
+  fullPath,
+  options.loop === true ? "--loop" : undefined,
+];
 
 export default Player;
