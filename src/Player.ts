@@ -4,7 +4,8 @@ import rc from "rc";
 import { getLogger } from "log4js";
 import { EventEmitter } from "events";
 import path from "path";
-import { execPromise } from "./utils";
+import { execPromise, getAuthCode } from "./utils";
+import axios from "axios";
 
 const config: typeof defaults = parse(rc("vlconductor", defaults));
 
@@ -14,6 +15,7 @@ logger.level = config.loglevel;
 class Player extends EventEmitter {
   private filePath: string;
   private options: PlaybackOptions;
+  private checkInterval: NodeJS.Timer | null;
 
   constructor(file: string, options: Partial<PlaybackOptions>) {
     super();
@@ -24,6 +26,9 @@ class Player extends EventEmitter {
       JSON.stringify(this.options, null, 2)
     );
     this.filePath = path.resolve(file);
+    this.checkInterval = setInterval(() => {
+      this.fetchStatus();
+    }, config.checkInterval);
   }
 
   async open() {
@@ -36,14 +41,32 @@ class Player extends EventEmitter {
       logger.error("open error: " + e);
     }
   }
+
+  async fetchStatus() {
+    try {
+      const res = await axios.get(`${getStatusUrl(config.http)}`, {
+        headers: {
+          Authorization: `Basic ${getAuthCode("", config.http.password)}`,
+        },
+      });
+      const { status, data } = res;
+      logger.debug("fetchStatus response:", status);
+      logger.trace(data);
+    } catch (e) {
+      logger.error("fetchStatus error:", e);
+    }
+  }
 }
+
+const getStatusUrl = (http: Config["http"]) =>
+  `http://localhost:${http.port}/requests/status.xml`;
 
 const getCommand = (
   fullPath: string,
   http: Config["http"],
   options: PlaybackOptions
 ) =>
-  `vlc cvlc -I http --http-password ${http.password} --http-host ${
+  `vlc --no-osd -I http --http-password ${http.password} --http-host ${
     http.host
   } --http-port ${http.port} ${fullPath} ${options.loop ? "--loop" : ""}`;
 

@@ -1,9 +1,9 @@
-import { exec } from 'child_process'
-import { logger } from './Player'
+import { exec } from "child_process";
+import { logger } from "./Player";
 
 export interface ExecResult {
-  stdout: string
-  stderr: string
+  stdout: string;
+  stderr: string;
 }
 
 // Since exec is not (yet) Promisified, this function makes things easier
@@ -12,9 +12,12 @@ export const execPromise = (command: string) =>
     exec(command, (err, stdout, stderr) => {
       logger.debug("execPromise callback", { err, stdout, stderr });
       if (err) {
-        reject(err)
+        reject(err);
       } else {
-        resolve({ stdout, stderr })
+        resolve({ stdout, stderr });
       }
-    })
-  })
+    });
+  });
+
+export const getAuthCode = (username: string, password: string) =>
+  Buffer.from(`${username}:${password}`).toString("base64");
