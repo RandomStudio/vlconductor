@@ -8,8 +8,7 @@ import { execPromise, getAuthCode } from "./utils";
 import parser from "fast-xml-parser";
 import { getLogger } from "log4js";
 import axios from "axios";
-import { ChildProcess, exec, execFile } from "child_process";
-import { stderr } from "node:process";
+import { ChildProcess, execFile } from "child_process";
 
 const appName = "vlconductor";
 
@@ -22,7 +21,10 @@ class Player extends EventEmitter {
   private filePath: string;
   private options: PlaybackOptions;
   private checkInterval: NodeJS.Timer | null;
-  private lastState: "unknown" | "stopped" | "playing";
+  private lastKnown: {
+    state: "unknown" | "stopped" | "playing";
+    position?: number;
+  };
   private process: ChildProcess | null;
 
   constructor(file: string, options: Partial<PlaybackOptions>) {
@@ -33,7 +35,7 @@ class Player extends EventEmitter {
       "final options with overrides:",
       JSON.stringify(this.options, null, 2)
     );
-    this.lastState = "unknown";
+    this.lastKnown = { state: "unknown" };
     this.filePath = path.resolve(file);
     this.process = null;
     this.checkInterval = null;
@@ -50,7 +52,7 @@ class Player extends EventEmitter {
     }, config.checkInterval);
   }
 
-  async fetchStatus() {
+  private async fetchStatus() {
     try {
       const res = await axios.get(`${getStatusUrl(config.http)}`, {
         headers: {
@@ -63,17 +65,23 @@ class Player extends EventEmitter {
       // logger.trace("parsed data:", JSON.stringify(parsed, null, 2));
       const { root } = parsed;
       const { state, length, position } = root;
-      logger.debug({ state, length, position });
+      logger.trace({ state, length, position });
 
-      if (this.lastState === "unknown" && state === "playing") {
-        this.lastState = "playing";
+      if (this.lastKnown.state === "unknown" && state === "playing") {
+        this.lastKnown.state = "playing";
         this.emit("started");
       }
 
-      if (this.lastState === "playing" && state === "stopped") {
-        this.lastState = "stopped";
+      if (this.lastKnown.state === "playing" && state === "stopped") {
+        this.lastKnown.state = "stopped";
         this.emit("stopped");
       }
+
+      if (position === 0 && this.lastKnown.position !== 0) {
+        this.emit("zero");
+      }
+
+      this.lastKnown.position = position;
     } catch (e) {
       if (e.code === "ECONNRESET") {
         logger.debug("reset - probably closing video?");
@@ -85,10 +93,30 @@ class Player extends EventEmitter {
     }
   }
 
+  private async applyCommand(command: string) {
+    const res = await axios.get(
+      `${getStatusUrl(config.http)}?command=${command}`,
+      {
+        headers: {
+          Authorization: `Basic ${getAuthCode("", config.http.password)}`,
+        },
+      }
+    );
+    logger.trace("applyCommand:", { res });
+  }
+
+  async stop() {
+    logger.debug("stop()");
+    await this.applyCommand("pl_stop");
+  }
+
   async close(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       if (this.checkInterval) {
         clearInterval(this.checkInterval);
+      }
+      if (this.lastKnown.state === "playing") {
+        await this.stop();
       }
       if (this.process) {
         logger.debug("waiting to kill proces...");
