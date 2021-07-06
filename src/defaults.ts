@@ -7,23 +7,23 @@ export interface Config {
   checkInterval: number;
   options: PlaybackOptions;
   http: {
-    host: string
+    host: string;
     port: number;
     password: string;
-  }
+  };
 }
 
 const defaults: Config = {
-  loglevel: "debug",
+  loglevel: "info",
   checkInterval: 16,
   options: {
-    loop: false
+    loop: false,
   },
   http: {
     host: "0.0.0.0",
     port: 8088,
-    password: "vlconductor"
-  }
+    password: "vlconductor",
+  },
 };
 
 export default defaults;
