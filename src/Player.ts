@@ -1,4 +1,4 @@
-import defaults from "./defaults";
+import defaults, { Config, PlaybackOptions } from "./defaults";
 import parse from "parse-strings-in-object";
 import rc from "rc";
 import { getLogger } from "log4js";
@@ -11,27 +11,34 @@ const config: typeof defaults = parse(rc("vlconductor", defaults));
 export const logger = getLogger();
 logger.level = config.loglevel;
 
-
 class Player extends EventEmitter {
-
   private filePath: string;
+  private options: PlaybackOptions;
 
-  constructor(file: string) {
+  constructor(file: string, options: Partial<PlaybackOptions>) {
     super();
-    logger.info("instance of Player with config", config);
+    logger.info("instance of Player with", { file, options, config });
+    this.options = { ...config.options, ...options };
+    logger.debug(
+      "final options with overrides:",
+      JSON.stringify(this.options, null, 2)
+    );
     this.filePath = path.resolve(file);
   }
 
   async open() {
-    const cmd = `vlc cvlc ${this.filePath}`;
-    logger.debug(`run command: "${cmd}"`)
+    const cmd = getCommand(this.filePath, config.http);
+    logger.info(`run command: "${cmd}"`);
     try {
       const res = await execPromise(cmd);
       logger.debug("command completed", res);
-    } catch(e) {
+    } catch (e) {
       logger.error("open error: " + e);
     }
   }
 }
+
+const getCommand = (fullPath: string, http: Config["http"]) =>
+  `vlc cvlc -I http --http-password ${http.password} --http-host ${http.host} --http-port ${http.port} ${fullPath}`;
 
 export default Player;
