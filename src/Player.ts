@@ -27,7 +27,7 @@ class Player extends EventEmitter {
   }
 
   async open() {
-    const cmd = getCommand(this.filePath, config.http);
+    const cmd = getCommand(this.filePath, config.http, this.options);
     logger.info(`run command: "${cmd}"`);
     try {
       const res = await execPromise(cmd);
@@ -38,7 +38,13 @@ class Player extends EventEmitter {
   }
 }
 
-const getCommand = (fullPath: string, http: Config["http"]) =>
-  `vlc cvlc -I http --http-password ${http.password} --http-host ${http.host} --http-port ${http.port} ${fullPath}`;
+const getCommand = (
+  fullPath: string,
+  http: Config["http"],
+  options: PlaybackOptions
+) =>
+  `vlc cvlc -I http --http-password ${http.password} --http-host ${
+    http.host
+  } --http-port ${http.port} ${fullPath} ${options.loop ? "--loop" : ""}`;
 
 export default Player;
