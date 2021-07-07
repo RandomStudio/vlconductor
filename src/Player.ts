@@ -3,7 +3,8 @@ import parse from "parse-strings-in-object";
 import rc from "rc";
 import { EventEmitter } from "events";
 import path from "path";
-import { execPromise, getAuthCode } from "./utils";
+import { getAuthCode } from "./utils";
+import fs from "fs/promises";
 
 import parser from "fast-xml-parser";
 import { getLogger } from "log4js";
@@ -37,6 +38,14 @@ class Player extends EventEmitter {
     );
     this.lastKnown = {};
     this.filePath = path.resolve(file);
+    fs.access(this.filePath)
+      .then(() => {})
+      .catch((e) => {
+        logger.fatal(
+          `could not access file at path "${this.filePath}"; error: ${e}`
+        );
+        throw Error(e);
+      });
     this.process = null;
     this.checkInterval = null;
   }
