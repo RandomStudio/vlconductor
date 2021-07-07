@@ -22,7 +22,7 @@ class Player extends EventEmitter {
   private options: PlaybackOptions;
   private checkInterval: NodeJS.Timer | null;
   private lastKnown: {
-    state: "unknown" | "stopped" | "playing";
+    state?: "stopped" | "playing";
     position?: number;
   };
   private process: ChildProcess | null;
@@ -35,7 +35,7 @@ class Player extends EventEmitter {
       "final options with overrides:",
       JSON.stringify(this.options, null, 2)
     );
-    this.lastKnown = { state: "unknown" };
+    this.lastKnown = {};
     this.filePath = path.resolve(file);
     this.process = null;
     this.checkInterval = null;
@@ -67,7 +67,7 @@ class Player extends EventEmitter {
       const { state, length, position } = root;
       logger.trace({ state, length, position });
 
-      if (this.lastKnown.state === "unknown" && state === "playing") {
+      if (this.lastKnown.state === undefined && state === "playing") {
         this.lastKnown.state = "playing";
         this.emit("started");
       }
@@ -93,22 +93,60 @@ class Player extends EventEmitter {
     }
   }
 
-  private async applyCommand(command: string) {
+  private async applyCommand(command: string, value?: string) {
     const res = await axios.get(
-      `${getStatusUrl(config.http)}?command=${command}`,
+      `${getStatusUrl(config.http)}?command=${command}${
+        value ? "&val=" + value : null
+      }`,
       {
         headers: {
           Authorization: `Basic ${getAuthCode("", config.http.password)}`,
         },
       }
     );
-    logger.trace("applyCommand:", { res });
+    logger.debug("applyCommand:", { res });
   }
 
   async stop() {
     logger.debug("stop()");
     await this.applyCommand("pl_stop");
   }
+
+  async pause() {
+    if (this.lastKnown.state === "playing") {
+      logger.debug("pause()");
+      await this.applyCommand("pl_pause");
+    } else {
+      logger.debug("ignore pause(); clip not playing");
+    }
+  }
+
+  async resume() {
+    if (this.lastKnown.state === "playing") {
+      logger.debug("ignore resume(); clip already playing");
+    } else {
+      logger.debug("play()");
+      await this.applyCommand("pl_play");
+    }
+  }
+
+  /**
+   * Allowed values are of the form:
+   - [+ or -][<int><H or h>:][<int><M or m or '>:][<int><nothing or S or s or ">]
+   - [+ or -]<int>%
+
+   (value between [ ] are optional, value between < > are mandatory)
+
+  Examples:
+    - 1000 -> seek to the 1000th second
+    - +1H:2M -> seek 1 hour and 2 minutes forward
+    - -10% -> seek 10% back
+   */
+  async seek(value: string) {
+    logger.debug("seek()", { value });
+    await this.applyCommand("pl_seek", value);
+  }
+  // TODO: possibly split this into different functions for the different types of values?
 
   async close(): Promise<void> {
     return new Promise(async (resolve, reject) => {
