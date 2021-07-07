@@ -14,6 +14,6 @@
 
 ## TODO:
 
-Should be able to add event emitters for time-based trigger(s)
-Throw error if file not found
-Allow for automatic close on clip end (should this be the default?)
+- Should be able to add event emitters for time-based trigger(s)
+- Throw error if file not found
+- Multiple layers, multiple players?

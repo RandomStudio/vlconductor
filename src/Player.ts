@@ -74,6 +74,10 @@ class Player extends EventEmitter {
 
       if (this.lastKnown.state === "playing" && state === "stopped") {
         this.emit("stopped");
+        if (this.options.killOnEnd === true) {
+          logger.debug("killOnEnd === true; will close now...");
+          this.close();
+        }
       }
 
       if (position === 0 && this.lastKnown.position !== 0) {

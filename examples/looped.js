@@ -10,6 +10,7 @@ looper.on("zero", async () => {
   console.log({ count });
   if (count >= 3) {
     console.log("that's enough", { count });
-    await looper.close();
+    // await looper.close();
+    console.log("you should Ctrl+C now!");
   }
 });

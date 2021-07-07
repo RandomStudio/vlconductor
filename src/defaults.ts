@@ -1,5 +1,6 @@
 export interface PlaybackOptions {
   loop: boolean;
+  killOnEnd: boolean;
 }
 
 export interface Config {
@@ -18,6 +19,7 @@ const defaults: Config = {
   checkInterval: 16,
   options: {
     loop: false,
+    killOnEnd: false,
   },
   http: {
     host: "0.0.0.0",
