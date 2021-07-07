@@ -9,5 +9,5 @@ player.on("started", () => {
 
 player.on("stopped", async () => {
   console.log("****************** STOPPED");
-  await player.close();
+  // await player.close();
 });
