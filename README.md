@@ -14,6 +14,5 @@
 
 ## TODO:
 
-- Throw error if file not found
 - Should be able to add event emitters for time-based trigger(s)
 - Multiple layers, multiple players?
