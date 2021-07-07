@@ -1,4 +1,5 @@
 import { exec } from "child_process";
+import { Config, PlaybackOptions } from "./defaults";
 import { logger } from "./Player";
 
 export interface ExecResult {
@@ -6,18 +7,25 @@ export interface ExecResult {
   stderr: string;
 }
 
-// Since exec is not (yet) Promisified, this function makes things easier
-export const execPromise = (command: string) =>
-  new Promise<ExecResult>((resolve, reject) => {
-    exec(command, (err, stdout, stderr) => {
-      logger.debug("execPromise callback", { err, stdout, stderr });
-      if (err) {
-        reject(err);
-      } else {
-        resolve({ stdout, stderr });
-      }
-    });
-  });
+export const getStatusUrl = (http: Config["http"]) =>
+  `http://localhost:${http.port}/requests/status.xml`;
+
+export const getParams = (
+  fullPath: string,
+  http: Config["http"],
+  options: PlaybackOptions
+): string[] => [
+  "--no-osd",
+  "-I http",
+  "--http-password",
+  http.password,
+  "--http-host",
+  http.host,
+  "--http-port",
+  http.port.toString(),
+  fullPath,
+  options.loop === true ? "--loop" : undefined,
+];
 
 export const getAuthCode = (username: string, password: string) =>
   Buffer.from(`${username}:${password}`).toString("base64");

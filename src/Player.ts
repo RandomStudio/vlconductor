@@ -3,7 +3,7 @@ import parse from "parse-strings-in-object";
 import rc from "rc";
 import { EventEmitter } from "events";
 import path from "path";
-import { getAuthCode } from "./utils";
+import { getAuthCode, getParams, getStatusUrl } from "./utils";
 import fs from "fs/promises";
 
 import parser from "fast-xml-parser";
@@ -60,67 +60,6 @@ class Player extends EventEmitter {
       await this.fetchStatus();
       this.emit("status", this.lastKnown);
     }, config.checkInterval);
-  }
-
-  private async fetchStatus() {
-    try {
-      const res = await axios.get(`${getStatusUrl(config.http)}`, {
-        headers: {
-          Authorization: `Basic ${getAuthCode("", config.http.password)}`,
-        },
-      });
-      const { status, data } = res;
-      logger.trace("fetchStatus response:", { status, data });
-      const parsed = parser.parse(data);
-      // logger.trace("parsed data:", JSON.stringify(parsed, null, 2));
-      const { root } = parsed;
-      const { state, length, position } = root;
-      logger.trace({ state, length, position });
-
-      if (this.lastKnown.state === undefined && state === "playing") {
-        this.emit("started");
-      }
-
-      if (this.lastKnown.state === "playing" && state === "stopped") {
-        this.emit("stopped");
-        if (this.options.killOnEnd === true) {
-          logger.debug("killOnEnd === true; will close now...");
-          this.close();
-        }
-      }
-
-      if (position === 0 && this.lastKnown.position !== 0) {
-        this.emit("zero");
-      }
-
-      this.lastKnown.position = position;
-      this.lastKnown.state = state;
-    } catch (e) {
-      if (e.code === "ECONNRESET") {
-        logger.debug("reset - probably closing video?");
-      } else if (e.code === "ECONNREFUSED") {
-        logger.debug("refused - probably video not started yet?");
-      } else {
-        logger.error("fetchStatus error:", e);
-      }
-    }
-  }
-
-  private async applyCommand(command: string, value?: string) {
-    const url = `${getStatusUrl(config.http)}?command=${command}${
-      value ? "&val=" + value : ""
-    }`;
-    logger.debug("applyCommand", { command, value, url });
-    try {
-      const res = await axios.get(url, {
-        headers: {
-          Authorization: `Basic ${getAuthCode("", config.http.password)}`,
-        },
-      });
-      logger.trace("applyCommand:", { res });
-    } catch (e) {
-      logger.error("error in applyCommand response:", e);
-    }
   }
 
   async stop() {
@@ -190,26 +129,71 @@ class Player extends EventEmitter {
       }
     });
   }
+
+  // ----------------------------------------------------------------
+  // PRIVATE MEMBER FUNCTIONS
+  // ----------------------------------------------------------------
+
+  private async fetchStatus() {
+    try {
+      const res = await axios.get(`${getStatusUrl(config.http)}`, {
+        headers: {
+          Authorization: `Basic ${getAuthCode("", config.http.password)}`,
+        },
+      });
+      const { status, data } = res;
+      logger.trace("fetchStatus response:", { status, data });
+      const parsed = parser.parse(data);
+      // logger.trace("parsed data:", JSON.stringify(parsed, null, 2));
+      const { root } = parsed;
+      const { state, length, position } = root;
+      logger.trace({ state, length, position });
+
+      if (this.lastKnown.state === undefined && state === "playing") {
+        this.emit("started");
+      }
+
+      if (this.lastKnown.state === "playing" && state === "stopped") {
+        this.emit("stopped");
+        if (this.options.killOnEnd === true) {
+          logger.debug("killOnEnd === true; will close now...");
+          this.close();
+        }
+      }
+
+      if (position === 0 && this.lastKnown.position !== 0) {
+        this.emit("zero");
+      }
+
+      this.lastKnown.position = position;
+      this.lastKnown.state = state;
+    } catch (e) {
+      if (e.code === "ECONNRESET") {
+        logger.debug("reset - probably closing video?");
+      } else if (e.code === "ECONNREFUSED") {
+        logger.debug("refused - probably video not started yet?");
+      } else {
+        logger.error("fetchStatus error:", e);
+      }
+    }
+  }
+
+  private async applyCommand(command: string, value?: string) {
+    const url = `${getStatusUrl(config.http)}?command=${command}${
+      value ? "&val=" + value : ""
+    }`;
+    logger.debug("applyCommand", { command, value, url });
+    try {
+      const res = await axios.get(url, {
+        headers: {
+          Authorization: `Basic ${getAuthCode("", config.http.password)}`,
+        },
+      });
+      logger.trace("applyCommand:", { res });
+    } catch (e) {
+      logger.error("error in applyCommand response:", e);
+    }
+  }
 }
-
-const getStatusUrl = (http: Config["http"]) =>
-  `http://localhost:${http.port}/requests/status.xml`;
-
-const getParams = (
-  fullPath: string,
-  http: Config["http"],
-  options: PlaybackOptions
-): string[] => [
-  "--no-osd",
-  "-I http",
-  "--http-password",
-  http.password,
-  "--http-host",
-  http.host,
-  "--http-port",
-  http.port.toString(),
-  fullPath,
-  options.loop === true ? "--loop" : undefined,
-];
 
 export default Player;
