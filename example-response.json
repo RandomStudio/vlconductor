@@ -1,0 +1,70 @@
+{
+  "root": {
+    "subtitledelay": 0,
+    "time": 0,
+    "repeat": false,
+    "equalizer": "",
+    "length": 10,
+    "position": 0.040092799812555,
+    "apiversion": 3,
+    "aspectratio": "default",
+    "audiofilters": {
+      "filter_0": ""
+    },
+    "audiodelay": 0,
+    "random": false,
+    "state": "playing",
+    "loop": false,
+    "fullscreen": false,
+    "rate": 1,
+    "videoeffects": {
+      "gamma": 1,
+      "contrast": 1,
+      "brightness": 1,
+      "saturation": 1,
+      "hue": 0
+    },
+    "version": "3.0.12 Vetinari",
+    "currentplid": 4,
+    "volume": 0,
+    "information": {
+      "category": [
+        {
+          "info": ["Lavf58.20.100", "tenseconds.mp4"]
+        },
+        {
+          "info": [
+            24,
+            "Top left",
+            "1920x1088",
+            "H264 - MPEG-4 AVC (part 10) (avc1)",
+            "Video",
+            "1920x1080",
+            ""
+          ]
+        }
+      ]
+    },
+    "stats": {
+      "averagedemuxbitrate": 0,
+      "readpackets": 12,
+      "demuxdiscontinuity": 1,
+      "averageinputbitrate": 0,
+      "decodedvideo": 60,
+      "sendbitrate": 0,
+      "playedabuffers": 0,
+      "inputbitrate": 0,
+      "displayedpictures": 4,
+      "decodedaudio": 0,
+      "lostabuffers": 0,
+      "demuxreadbytes": 60071,
+      "sentpackets": 0,
+      "lostpictures": 6,
+      "demuxreadpackets": 0,
+      "demuxcorrupted": 0,
+      "sentbytes": 0,
+      "readbytes": 67166,
+      "demuxbitrate": 0
+    }
+  }
+}

@@ -11,8 +11,11 @@
 - `resume()`: play if paused, ignored otherwise
 - `seek(value: string)`: use VLC's peculair seek syntax
 - `close()`: stop playback, kill subprocess
+- `addPositionEvent(position: number, handler: (position?: number) => void)`: add a trigger (call the event handler) when a position is hit/passed
 
 ## TODO:
 
-- Should be able to add event emitters for time-based trigger(s)
 - Multiple layers, multiple players?
+- Different functions for various seek value types
+- Setup VSCode debugging
+- Some unit tests

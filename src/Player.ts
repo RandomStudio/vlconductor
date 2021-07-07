@@ -1,23 +1,34 @@
-import defaults, { Config, PlaybackOptions } from "./defaults";
-import parse from "parse-strings-in-object";
-import rc from "rc";
+// Our modules
+import defaults, { PlaybackOptions } from "./defaults";
+import { getAuthCode, getParams, getStatusUrl } from "./utils";
+
+// Built-in modules
 import { EventEmitter } from "events";
 import path from "path";
-import { getAuthCode, getParams, getStatusUrl } from "./utils";
 import fs from "fs/promises";
 
+// Third-party modules
+import parse from "parse-strings-in-object";
+import rc from "rc";
 import parser from "fast-xml-parser";
 import { getLogger } from "log4js";
 import axios from "axios";
 import { ChildProcess, execFile } from "child_process";
 
+// Config and logging
 const appName = "vlconductor";
-
 const config: typeof defaults = parse(rc(appName, defaults));
-
 export const logger = getLogger(appName);
 logger.level = config.loglevel;
 
+// Shared types
+interface Trigger {
+  position: number;
+  handler: (position?: number) => void;
+  alreadyTrigged: boolean;
+}
+
+// Main class implementation
 class Player extends EventEmitter {
   private filePath: string;
   private options: PlaybackOptions;
@@ -27,6 +38,7 @@ class Player extends EventEmitter {
     position?: number;
   };
   private process: ChildProcess | null;
+  private triggers: Trigger[];
 
   constructor(file: string, options: Partial<PlaybackOptions>) {
     super();
@@ -48,6 +60,7 @@ class Player extends EventEmitter {
       });
     this.process = null;
     this.checkInterval = null;
+    this.triggers = [];
   }
 
   async open() {
@@ -58,6 +71,7 @@ class Player extends EventEmitter {
     });
     this.checkInterval = setInterval(async () => {
       await this.fetchStatus();
+      this.checkForEvents();
       this.emit("status", this.lastKnown);
     }, config.checkInterval);
   }
@@ -130,6 +144,20 @@ class Player extends EventEmitter {
     });
   }
 
+  addPositionEvent(position: number, handler: (position?: number) => void) {
+    this.triggers.push({
+      position,
+      handler,
+      alreadyTrigged: false,
+    });
+    logger.info(
+      "added position trigger/event at",
+      position,
+      "; now there are",
+      this.triggers.length
+    );
+  }
+
   // ----------------------------------------------------------------
   // PRIVATE MEMBER FUNCTIONS
   // ----------------------------------------------------------------
@@ -142,7 +170,7 @@ class Player extends EventEmitter {
         },
       });
       const { status, data } = res;
-      logger.trace("fetchStatus response:", { status, data });
+      // logger.trace("fetchStatus response:", { status, data });
       const parsed = parser.parse(data);
       // logger.trace("parsed data:", JSON.stringify(parsed, null, 2));
       const { root } = parsed;
@@ -163,6 +191,9 @@ class Player extends EventEmitter {
 
       if (position === 0 && this.lastKnown.position !== 0) {
         this.emit("zero");
+        this.triggers.forEach((trigger) => {
+          trigger.alreadyTrigged = false;
+        });
       }
 
       this.lastKnown.position = position;
@@ -194,6 +225,17 @@ class Player extends EventEmitter {
       logger.error("error in applyCommand response:", e);
     }
   }
+
+  private checkForEvents = () => {
+    const { position } = this.lastKnown;
+    this.triggers.forEach((trigger) => {
+      if (!trigger.alreadyTrigged && position >= trigger.position) {
+        trigger.alreadyTrigged = true;
+        trigger.handler(position);
+        logger.debug("trigger for", { ...trigger }, "at position", position);
+      }
+    });
+  };
 }
 
 export default Player;
