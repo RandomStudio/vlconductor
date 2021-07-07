@@ -1,6 +1,10 @@
 # VLConductor
 
-"VideoLAN Conductor" or just "VLC Conductor".
+Allowing programmatic NodeJS control of VLC Player for Raspberry Pi, without a GUI or windowing system.
+
+The name: "VideoLAN Conductor" or just "VLC Conductor".
+
+Based on my other library [omxconductor](https://github.com/RandomStudio/omxconductor) which offered similar functionality, but using the somewhat-deprecated `omxplayer`. (VLC Player supports hardware-accelerated 4K HEVC playback, for example.)
 
 ## API
 

@@ -9,8 +9,14 @@
     "prepare": "npm run build",
     "start": "npm run build && node dist/index.js"
   },
-  "author": "",
+  "author": "Stephen Buchanan",
   "license": "ISC",
+  "keywords": [
+    "raspberry",
+    "pi",
+    "vlc",
+    "video"
+  ],
   "dependencies": {
     "axios": "^0.21.1",
     "fast-xml-parser": "^3.19.0",
