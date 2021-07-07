@@ -47,8 +47,9 @@ class Player extends EventEmitter {
     this.process = execFile("/usr/bin/vlc", params, (error, stdout, stderr) => {
       logger.trace("exec complete", { error, stdout, stderr });
     });
-    this.checkInterval = setInterval(() => {
-      this.fetchStatus();
+    this.checkInterval = setInterval(async () => {
+      await this.fetchStatus();
+      this.emit("status", this.lastKnown);
     }, config.checkInterval);
   }
 
@@ -68,12 +69,10 @@ class Player extends EventEmitter {
       logger.trace({ state, length, position });
 
       if (this.lastKnown.state === undefined && state === "playing") {
-        this.lastKnown.state = "playing";
         this.emit("started");
       }
 
       if (this.lastKnown.state === "playing" && state === "stopped") {
-        this.lastKnown.state = "stopped";
         this.emit("stopped");
       }
 
@@ -82,6 +81,7 @@ class Player extends EventEmitter {
       }
 
       this.lastKnown.position = position;
+      this.lastKnown.state = state;
     } catch (e) {
       if (e.code === "ECONNRESET") {
         logger.debug("reset - probably closing video?");
@@ -94,17 +94,20 @@ class Player extends EventEmitter {
   }
 
   private async applyCommand(command: string, value?: string) {
-    const res = await axios.get(
-      `${getStatusUrl(config.http)}?command=${command}${
-        value ? "&val=" + value : null
-      }`,
-      {
+    const url = `${getStatusUrl(config.http)}?command=${command}${
+      value ? "&val=" + value : ""
+    }`;
+    logger.debug("applyCommand", { command, value, url });
+    try {
+      const res = await axios.get(url, {
         headers: {
           Authorization: `Basic ${getAuthCode("", config.http.password)}`,
         },
-      }
-    );
-    logger.debug("applyCommand:", { res });
+      });
+      logger.trace("applyCommand:", { res });
+    } catch (e) {
+      logger.error("error in applyCommand response:", e);
+    }
   }
 
   async stop() {
@@ -144,7 +147,7 @@ class Player extends EventEmitter {
    */
   async seek(value: string) {
     logger.debug("seek()", { value });
-    await this.applyCommand("pl_seek", value);
+    await this.applyCommand("seek", value);
   }
   // TODO: possibly split this into different functions for the different types of values?
 
