@@ -33,6 +33,7 @@ interface Trigger {
   seconds?: number;
   handler: (position?: number) => void;
   alreadyTrigged: boolean;
+  once: boolean;
 }
 
 // Main class implementation
@@ -154,11 +155,16 @@ class Player extends EventEmitter {
     });
   }
 
-  addPositionEvent(position: number, handler: (position?: number) => void) {
+  addPositionEvent(
+    position: number,
+    handler: (position?: number) => void,
+    once = false
+  ) {
     this.triggers.push({
       position,
       handler,
       alreadyTrigged: false,
+      once,
     });
     logger.info(
       "added position trigger/event at",
@@ -168,11 +174,16 @@ class Player extends EventEmitter {
     );
   }
 
-  addTimeEvent(seconds: number, handler: (position?: number) => void) {
+  addTimeEvent(
+    seconds: number,
+    handler: (position?: number) => void,
+    once = false
+  ) {
     this.triggers.push({
       seconds,
       handler,
       alreadyTrigged: false,
+      once,
     });
     logger.info(
       "added time event trigger/event at",
@@ -313,6 +324,15 @@ class Player extends EventEmitter {
             position
           );
         }
+      }
+
+      // Check for once-off triggers to be deleted
+      const toDelete = this.triggers.filter(
+        (t) => t.once === true && t.alreadyTrigged === true
+      );
+      if (toDelete.length > 0) {
+        logger.debug("deleting", toDelete.length, "once-off triggers...");
+        this.triggers = this.triggers.filter((t) => t.once === false);
       }
     });
   };
