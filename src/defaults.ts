@@ -1,6 +1,7 @@
 export interface PlaybackOptions {
   loop: boolean;
   killOnEnd: boolean;
+  immediatePause: boolean;
 }
 
 export interface Config {
@@ -20,6 +21,7 @@ const defaults: Config = {
   options: {
     loop: false,
     killOnEnd: false,
+    immediatePause: false,
   },
   http: {
     host: "0.0.0.0",

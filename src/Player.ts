@@ -44,6 +44,7 @@ class Player extends EventEmitter {
     position?: number;
     length?: number;
   };
+  private doneImmediatePause: boolean;
   private process: ChildProcess | null;
   private triggers: Trigger[];
 
@@ -68,6 +69,7 @@ class Player extends EventEmitter {
     this.process = null;
     this.checkInterval = null;
     this.triggers = [];
+    this.doneImmediatePause = false;
   }
 
   async open() {
@@ -224,6 +226,17 @@ class Player extends EventEmitter {
         state,
         length,
       };
+      if (
+        this.options.immediatePause === true &&
+        this.doneImmediatePause === false
+      ) {
+        if (position > 0) {
+          logger.info("Immediate pause requested; ready to pause now...");
+          this.pause();
+          this.doneImmediatePause = true;
+        }
+      }
+
       // logger.debug("elapsed2:", Date.now() - start, "ms");
     } catch (e) {
       if (e.code === "ECONNRESET") {
