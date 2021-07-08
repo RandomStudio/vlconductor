@@ -1,6 +1,11 @@
 // Our modules
 import defaults, { PlaybackOptions } from "./defaults";
-import { getAuthCode, getParams, getStatusUrl } from "./utils";
+import {
+  getAuthCode,
+  getParams,
+  getStatusUrl,
+  secondsToPosition,
+} from "./utils";
 
 // Built-in modules
 import { EventEmitter } from "events";
@@ -23,7 +28,8 @@ logger.level = config.loglevel;
 
 // Shared types
 interface Trigger {
-  position: number;
+  position?: number;
+  seconds?: number;
   handler: (position?: number) => void;
   alreadyTrigged: boolean;
 }
@@ -36,6 +42,7 @@ class Player extends EventEmitter {
   private lastKnown: {
     state?: "stopped" | "playing";
     position?: number;
+    length?: number;
   };
   private process: ChildProcess | null;
   private triggers: Trigger[];
@@ -158,17 +165,33 @@ class Player extends EventEmitter {
     );
   }
 
+  addTimeEvent(seconds: number, handler: (position?: number) => void) {
+    this.triggers.push({
+      seconds,
+      handler,
+      alreadyTrigged: false,
+    });
+    logger.info(
+      "added time event trigger/event at",
+      seconds,
+      "seconds ; now there are",
+      this.triggers.length
+    );
+  }
+
   // ----------------------------------------------------------------
   // PRIVATE MEMBER FUNCTIONS
   // ----------------------------------------------------------------
 
   private async fetchStatus() {
+    // const start = Date.now();
     try {
       const res = await axios.get(`${getStatusUrl(config.http)}`, {
         headers: {
           Authorization: `Basic ${getAuthCode("", config.http.password)}`,
         },
       });
+      // logger.debug("elapsed1:", Date.now() - start, "ms");
       const { status, data } = res;
       // logger.trace("fetchStatus response:", { status, data });
       const parsed = parser.parse(data);
@@ -196,8 +219,12 @@ class Player extends EventEmitter {
         });
       }
 
-      this.lastKnown.position = position;
-      this.lastKnown.state = state;
+      this.lastKnown = {
+        position,
+        state,
+        length,
+      };
+      // logger.debug("elapsed2:", Date.now() - start, "ms");
     } catch (e) {
       if (e.code === "ECONNRESET") {
         logger.debug("reset - probably closing video?");
@@ -227,12 +254,39 @@ class Player extends EventEmitter {
   }
 
   private checkForEvents = () => {
-    const { position } = this.lastKnown;
+    const { position, length } = this.lastKnown;
     this.triggers.forEach((trigger) => {
-      if (!trigger.alreadyTrigged && position >= trigger.position) {
-        trigger.alreadyTrigged = true;
-        trigger.handler(position);
-        logger.debug("trigger for", { ...trigger }, "at position", position);
+      // Position-based triggers:
+      if (trigger.position !== undefined) {
+        if (!trigger.alreadyTrigged && position >= trigger.position) {
+          trigger.alreadyTrigged = true;
+          trigger.handler(position);
+          logger.debug(
+            "POSITION trigger for",
+            { ...trigger },
+            "at position",
+            position
+          );
+        }
+      }
+
+      // Time (seconds)-based triggers:
+      if (trigger.seconds !== undefined && length !== undefined) {
+        if (
+          !trigger.alreadyTrigged &&
+          position >= secondsToPosition(trigger.seconds, length)
+        ) {
+          trigger.alreadyTrigged = true;
+          trigger.handler(position);
+          logger.debug(
+            "TIME trigger for",
+            { ...trigger },
+            "at seconds:",
+            trigger.seconds,
+            "/ position",
+            position
+          );
+        }
       }
     });
   };

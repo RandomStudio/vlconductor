@@ -29,3 +29,6 @@ export const getParams = (
 
 export const getAuthCode = (username: string, password: string) =>
   Buffer.from(`${username}:${password}`).toString("base64");
+
+export const secondsToPosition = (seconds: number, length: number) =>
+  seconds / length;
