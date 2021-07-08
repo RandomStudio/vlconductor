@@ -32,3 +32,6 @@ export const getAuthCode = (username: string, password: string) =>
 
 export const secondsToPosition = (seconds: number, length: number) =>
   seconds / length;
+
+export const positionToSeconds = (position: number, length: number) =>
+  position * length;

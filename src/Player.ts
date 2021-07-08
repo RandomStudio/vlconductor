@@ -4,6 +4,7 @@ import {
   getAuthCode,
   getParams,
   getStatusUrl,
+  positionToSeconds,
   secondsToPosition,
 } from "./utils";
 
@@ -183,6 +184,14 @@ class Player extends EventEmitter {
 
   getPlayState() {
     return this.lastKnown.state;
+  }
+
+  getPosition() {
+    return this.lastKnown.position;
+  }
+
+  getSeconds() {
+    return positionToSeconds(this.lastKnown.position, this.lastKnown.length);
   }
 
   // ----------------------------------------------------------------
