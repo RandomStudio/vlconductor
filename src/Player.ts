@@ -40,7 +40,7 @@ class Player extends EventEmitter {
   private process: ChildProcess | null;
   private triggers: Trigger[];
 
-  constructor(file: string, options: Partial<PlaybackOptions>) {
+  constructor(file: string, options?: Partial<PlaybackOptions>) {
     super();
     logger.info("instance of Player with", { file, options, config });
     this.options = { ...config.options, ...options };
