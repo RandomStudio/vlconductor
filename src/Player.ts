@@ -40,7 +40,7 @@ class Player extends EventEmitter {
   private options: PlaybackOptions;
   private checkInterval: NodeJS.Timer | null;
   private lastKnown: {
-    state?: "stopped" | "playing";
+    state?: "stopped" | "playing" | "paused";
     position?: number;
     length?: number;
   };
@@ -179,6 +179,10 @@ class Player extends EventEmitter {
       "seconds ; now there are",
       this.triggers.length
     );
+  }
+
+  getPlayState() {
+    return this.lastKnown.state;
   }
 
   // ----------------------------------------------------------------
