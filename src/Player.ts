@@ -260,8 +260,8 @@ class Player extends EventEmitter {
             JSON.stringify({ position, length, state })
           );
           logger.info("Immediate pause requested; ready to pause now...");
-          await this.pause();
           this.doneImmediatePause = true;
+          await this.pause();
         }
       }
 
