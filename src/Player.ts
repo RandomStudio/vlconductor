@@ -308,7 +308,9 @@ class Player extends EventEmitter {
       }
 
       // Time (seconds)-based triggers:
-      if (trigger.seconds !== undefined && length !== undefined) {
+      // Apparently vlc can report length === -1 at some point,
+      // presumably when video not fully loaded
+      if (trigger.seconds !== undefined && length !== undefined && length > 0) {
         if (
           !trigger.alreadyTrigged &&
           position >= secondsToPosition(trigger.seconds, length)
@@ -321,7 +323,8 @@ class Player extends EventEmitter {
             "at seconds:",
             trigger.seconds,
             "/ position",
-            position
+            position,
+            { length }
           );
         }
       }
