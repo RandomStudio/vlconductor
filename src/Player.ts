@@ -125,6 +125,7 @@ class Player extends EventEmitter {
   async seek(value: string) {
     logger.debug("seek()", { value });
     await this.applyCommand("seek", value);
+    this.resetTriggers();
   }
   // TODO: possibly split this into different functions for the different types of values?
 
@@ -208,6 +209,11 @@ class Player extends EventEmitter {
   // ----------------------------------------------------------------
   // PRIVATE MEMBER FUNCTIONS
   // ----------------------------------------------------------------
+
+  private resetTriggers() {
+    logger.debug("reset all triggers");
+    this.triggers.forEach((t) => (t.alreadyTrigged = false));
+  }
 
   private async fetchStatus() {
     // const start = Date.now();
